@@ -2,12 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+global.Vocab = require('./api/models/vocabModel');
 const routes = require('./api/routes/vocabRoutes');
 
-global.Vocab = require('./api/models/vocabModel');
-
 mongoose.Promise = global.Promise;
-mongoose.connect('mongodb://localhost/vocab-builder',
+mongoose.connect('mongodb+srv://userid:userid@fgwweb2.7tpqwou.mongodb.net/?appName=FGWWeb2',
   { useNewUrlParser: true }
 );
 

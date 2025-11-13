@@ -1,28 +1,66 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <div class="ui inverted segment navbar">
+      <div class="ui center aligned container">
+        <div class="ui large secondary inverted pointing menu compact">
+          <router-link to="/words" exact class="item">
+            <i class="comment outline icon"></i> Words
+          </router-link>
+
+          <router-link to="/words/new" class="item">
+            <i class="plus circle icon"></i> New
+          </router-link>
+
+          <router-link to="/test" class="item">
+            <i class="graduation cap icon"></i> Test
+          </router-link>
+        </div>
+      </div>
+    </div>
+
+    <div class="ui text container">
+      <div class="ui one column grid">
+        <div class="column">
+          <router-view />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
-
 export default {
-  name: 'App',
-  components: {
-    HelloWorld
-  }
-}
+  name: 'app'
+};
 </script>
 
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+#app > div.navbar {
+  margin-bottom: 1.5em;
+}
+
+.myFlash {
+  width: 250px;
+  margin: 10px;
+  position: absolute;
+  top: 50px;
+  right: 0;
+}
+
+input {
+  width: 300px;
+}
+
+div.label {
+  width: 120px;
+}
+
+div.input {
+  margin-bottom: 10px;
+}
+
+button.ui.button {
+  margin-top: 15px;
+  display: block;
 }
 </style>
