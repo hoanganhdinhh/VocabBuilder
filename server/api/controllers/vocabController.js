@@ -16,12 +16,26 @@ exports.create_a_word = (req, res) => {
     });
 };
 
+// exports.read_a_word = (req, res) => {
+//     Vocab.findById(req.params.wordId, (err, word) => {
+//         if (err) res.send(err);
+//         res.json(word);
+//     });
+// };
+
 exports.read_a_word = (req, res) => {
     Vocab.findById(req.params.wordId, (err, word) => {
-        if (err) res.send(err);
-        res.json(word);
+        if (err) {
+            return res.status(500).send(err);
+        }
+        // Nếu không tìm thấy
+        if (!word) {
+            return res.status(404).json({ message: 'Word not found' });
+        }
+        return res.json(word);
     });
 };
+
 
 exports.update_a_word = (req, res) => {
     Vocab.findOneAndUpdate(
