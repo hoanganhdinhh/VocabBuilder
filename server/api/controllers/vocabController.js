@@ -28,7 +28,6 @@ exports.read_a_word = (req, res) => {
         if (err) {
             return res.status(500).send(err);
         }
-        // Nếu không tìm thấy
         if (!word) {
             return res.status(404).json({ message: 'Word not found' });
         }

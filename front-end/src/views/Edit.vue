@@ -18,19 +18,21 @@ export default {
 
     data: function(params) {
         return {
-            word: {}
+            word: {
+                english: '',
+                german: ''
+            }
         };
     },
     async mounted() {
-        this.word = await api.getWord(this.$route.params.id)
+        this.word = await api.getWord(this.$route.params.id);
     },
 
     methods: {
         createOrUpdate: async function(word) {
-            await api.updateWord(word);
+            const updatedWord = await api.updateWord(word);
             alert('Word updated successfully!');
-            // this.$router.push({ `/words/${word._id}` });
-            this.$router.push(`/words/${word.id}`);
+            this.$router.push(`/words/${updatedWord._id}`);
         }
     }
 }
