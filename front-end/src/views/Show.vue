@@ -8,7 +8,7 @@
         <div v-else class="ui segment">
             <h1 class="ui header">
                 Word Details
-                <div class="sub header">Review the English and German translations</div>
+                <div class="sub header">Review the English, German, and Vietnamese translations</div>
             </h1>
 
             <div class="ui list">
@@ -19,6 +19,10 @@
                 <div class="item">
                     <div class="header">German</div>
                     <div>{{ word.german }}</div>
+                </div>
+                <div class="item">
+                    <div class="header">Vietnamese</div>
+                    <div>{{ word.vietnamese }}</div>
                 </div>
             </div>
 
@@ -49,7 +53,8 @@ export default {
             word: {
                 _id: '',
                 english: '',
-                german: ''
+                german: '',
+                vietnamese: ''
             },
             loading: true,
             error: ''

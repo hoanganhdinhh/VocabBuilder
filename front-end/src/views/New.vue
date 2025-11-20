@@ -17,7 +17,8 @@ export default {
         return {
             word: {
                 english: '',
-                german: ''
+                german: '',
+                vietnamese: ''
             }
         };
     },
@@ -25,7 +26,8 @@ export default {
         createOrUpdate: async function(word) {
             const createdWord = await api.createWord({
                 english: word.english,
-                german: word.german
+                german: word.german,
+                vietnamese: word.vietnamese
             });
             alert('Word created successfully!');
             this.$router.push(`/words/${createdWord._id}`);

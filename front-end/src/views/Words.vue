@@ -6,17 +6,20 @@
                 <tr>
                     <th>English</th>
                     <th>German</th>
+                    <th>Vietnamese</th>
                     <th colspan="3"></th>
                 </tr>
             </thead>
-            <tr v-for="(word, i) in words" :key="word.id || i">
+            <tr v-for="(word, i) in words" :key="word._id || i">
                 <td>{{ word.english }}</td>
                 <td>{{ word.german }}</td>
+                <td>{{ word.vietnamese }}</td>
                 <td width="75" class="center aligned">
-                    <router-link :to="{name: 'show', params: { id: word.id }}">Show</router-link></td>
+                    <router-link :to="{name: 'show', params: { id: word._id }}">Show</router-link></td>
                 <td width="75" class="center aligned">
-                    <router-link :to="{name: 'edit', params: { id: word.id }}">Edit</router-link></td>
-                <td width="75" class="center aligned">Destroy</td>
+                    <router-link :to="{name: 'edit', params: { id: word._id }}">Edit</router-link></td>
+                <td width="75" class="center aligned">
+                    <router-link :to="{name: 'show', params: { id: word._id }}">Destroy</router-link></td>
             </tr>
         </table>
     </div>

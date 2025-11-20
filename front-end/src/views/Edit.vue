@@ -20,7 +20,8 @@ export default {
         return {
             word: {
                 english: '',
-                german: ''
+                german: '',
+                vietnamese: ''
             }
         };
     },

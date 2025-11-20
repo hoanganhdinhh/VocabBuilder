@@ -11,9 +11,15 @@ const handleError = fn => async (...params) => {
     }
 };
 
+// const handleError = fn => (...params) => {
+//     fn(...params).catch(error => {
+//         console.log(error);
+//     });
+// };
+
 export const api = {
     getWord: handleError(async id => {
-        const res = await axios.get(`${baseURL}${id}`);
+        const res = await axios.get(baseURL + id);
         return res.data;
     }),
 
@@ -23,7 +29,7 @@ export const api = {
     }),
 
     deleteWord: handleError(async id => {
-        const res = await axios.delete(`${baseURL}${id}`);
+        const res = await axios.delete(baseURL + id);
         return res.data;
     }),
 
@@ -33,7 +39,7 @@ export const api = {
     }),
 
     updateWord: handleError(async payload => {
-        const res = await axios.put(`${baseURL}${payload._id}`, payload);
+        const res = await axios.put(baseURL + payload._id, payload);
         return res.data;
     })
 };
