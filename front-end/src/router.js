@@ -7,42 +7,48 @@ import Edit from './views/Edit.vue'
 import Test from './views/Test.vue'
 import Login from './views/Login.vue'
 import Signup from './views/Signup.vue'
+import { auth } from './helpers/auth'
 
 Vue.use(Router)
 
-export default new Router({
+const router = new Router({
     mode: 'history',
     base: process.env.BASE_URL,
     linkActiveClass: 'active',
     routes: [
-        { 
+        {
             path: '/',
             redirect: '/words' 
         },
-        { 
+        {
             path: '/words',
             name: 'words',
-            component: Words 
+            component: Words,
+            meta: { requiresAuth: true }
         },
-        { 
+        {
             path: '/words/new',
-            name: 'new-word', 
-            component: New 
+            name: 'new-word',
+            component: New,
+            meta: { requiresAuth: true }
         },
-        { 
-            path: '/words/:id', 
-            name: 'show', 
-            component: Show 
+        {
+            path: '/words/:id',
+            name: 'show',
+            component: Show,
+            meta: { requiresAuth: true }
         },
-        { 
+        {
             path: '/words/:id/edit',
-            name: 'edit', 
-            component: Edit 
+            name: 'edit',
+            component: Edit,
+            meta: { requiresAuth: true }
         },
-        { 
+        {
             path: '/test',
-            name: 'test', 
-            component: Test 
+            name: 'test',
+            component: Test,
+            meta: { requiresAuth: true }
         },
         {
             path: '/login',
@@ -56,3 +62,22 @@ export default new Router({
         }
     ]
 })
+
+router.beforeEach((to, from, next) => {
+    const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+    const isLoggedIn = auth.isAuthenticated()
+
+    if (requiresAuth && !isLoggedIn) {
+        next({ name: 'login', query: { redirect: to.fullPath } })
+        return
+    }
+
+    if ((to.name === 'login' || to.name === 'signup') && isLoggedIn) {
+        next({ name: 'words' })
+        return
+    }
+
+    next()
+})
+
+export default router

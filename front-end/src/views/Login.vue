@@ -22,6 +22,7 @@
 
 <script>
 import { api } from '../helpers/helpers';
+import { auth } from '../helpers/auth';
 
 export default {
     name: 'Login',
@@ -47,8 +48,9 @@ export default {
                     email: this.form.email,
                     password: this.form.password
                 });
-                this.message = `Welcome back, ${user.email}!`;
-                this.messageType = 'positive message';
+                auth.setUser(user);
+                const redirect = this.$route.query.redirect || { name: 'words' };
+                this.$router.push(redirect);
             } catch (error) {
                 const responseMessage = error.response?.data?.message || 'Unable to login right now.';
                 this.message = responseMessage;
