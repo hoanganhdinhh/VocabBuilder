@@ -1,6 +1,20 @@
 const mongoose = require('mongoose');
 const Vocab = mongoose.model('Vocab');
 
+const translateText = async (text, targetLanguage) => {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${targetLanguage}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Translation request failed with status ${response.status}`);
+    }
+    const payload = await response.json();
+    if (!payload?.responseData?.translatedText) {
+        throw new Error('Translation response did not include translatedText');
+    }
+    return payload.responseData.translatedText;
+};
+
+
 exports.list_all_words = (req, res) => {
     Vocab.find({}, (err, words) => {
         if (err) res.send(err);
@@ -56,4 +70,23 @@ exports.delete_a_word = (req, res) => {
             _id: req.params.wordId
         });
     });
+};
+
+exports.suggest_translations = async (req, res) => {
+    const { english } = req.body;
+    if (!english) {
+        return res.status(400).json({ message: 'English word is required to generate suggestions' });
+    }
+
+    try {
+        const [german, vietnamese] = await Promise.all([
+            translateText(english, 'de'),
+            translateText(english, 'vi')
+        ]);
+
+        res.json({ german, vietnamese });
+    } catch (error) {
+        console.error('Failed to translate word', error);
+        res.status(500).json({ message: 'Unable to generate suggestions right now' });
+    }
 };

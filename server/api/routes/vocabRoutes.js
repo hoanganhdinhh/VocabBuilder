@@ -11,4 +11,9 @@ module.exports = app => {
         .get(vocabBuilder.read_a_word)
         .put(vocabBuilder.update_a_word)
         .delete(vocabBuilder.delete_a_word);
+
+    app
+        .route('/words/suggestions')
+        .post(vocabBuilder.suggest_translations);
+
 };

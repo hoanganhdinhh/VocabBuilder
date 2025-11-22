@@ -14,6 +14,14 @@
           <router-link to="/test" class="item">
             <i class="graduation cap icon"></i> Test
           </router-link>
+
+          <router-link to="/login" class="item">
+            <i class="sign in icon"></i> Login
+          </router-link>
+
+          <router-link to="/signup" class="item">
+            <i class="user plus icon"></i> Sign Up
+          </router-link>
         </div>
       </div>
     </div>

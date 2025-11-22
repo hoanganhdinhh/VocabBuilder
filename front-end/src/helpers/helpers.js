@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const baseURL = 'http://localhost:3000/words/';
+const authBaseURL = 'http://localhost:3000/auth/';
 
 const handleError = fn => async (...params) => {
     try {
@@ -40,6 +41,21 @@ export const api = {
 
     updateWord: handleError(async payload => {
         const res = await axios.put(baseURL + payload._id, payload);
+        return res.data;
+    }),
+    
+    suggestTranslations: handleError(async english => {
+        const res = await axios.post(baseURL + 'suggestions', { english });
+        return res.data;
+    }),
+
+    login: handleError(async credentials => {
+        const res = await axios.post(authBaseURL + 'login', credentials);
+        return res.data;
+    }),
+
+    signup: handleError(async credentials => {
+        const res = await axios.post(authBaseURL + 'signup', credentials);
         return res.data;
     })
 };

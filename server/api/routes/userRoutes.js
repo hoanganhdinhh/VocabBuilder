@@ -1,4 +1,4 @@
-const vocabBuilder = require('../controllers/userController');
+const userController = require('../controllers/userController');
 
 module.exports = app => {
     app
@@ -11,4 +11,7 @@ module.exports = app => {
         .get(userController.read_a_user)
         .put(userController.update_a_user)
         .delete(userController.delete_a_user);
-};
+
+    app.route('/auth/signup').post(userController.signup);
+    app.route('/auth/login').post(userController.login);
+};  
