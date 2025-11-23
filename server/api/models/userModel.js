@@ -11,6 +11,16 @@ const UserSchema = new Schema(
         password: {
             type: String,
             required: 'Password cannot be blank'
+        },
+        isVerified: {
+            type: Boolean,
+            default: false
+        },
+        verificationCode: {
+            type: String
+        },
+        verificationExpiresAt: {
+            type: Date
         }
     },
     { collection: 'users' }

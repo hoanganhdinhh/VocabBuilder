@@ -57,5 +57,15 @@ export const api = {
     signup: handleError(async credentials => {
         const res = await axios.post(authBaseURL + 'signup', credentials);
         return res.data;
+    }),
+
+    verifyOtp: handleError(async payload => {
+        const res = await axios.post(authBaseURL + 'verify-otp', payload);
+        return res.data;
+    }),
+
+    resendOtp: handleError(async payload => {
+        const res = await axios.post(authBaseURL + 'resend-otp', payload);
+        return res.data;
     })
 };

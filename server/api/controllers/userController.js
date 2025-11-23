@@ -1,10 +1,18 @@
 const mongoose = require('mongoose');
 const User = mongoose.model('User');
 const crypto = require('crypto');
+const https = require('https');
 const util = require('util');
 
 const pbkdf2 = util.promisify(crypto.pbkdf2);
 const randomBytes = util.promisify(crypto.randomBytes);
+
+const mailjetApiKey = '8a6840af9e90cd91075bd16daf41a5f6';
+const mailjetApiSecret = '34cd1c55b9c5d9b6f114a58ba3af8f6a';
+const mailjetFromEmail = 'no-reply@hoanganhdinh.cloud';
+const mailjetFromName = 'VocabBuilder';
+
+const OTP_EXPIRATION_MINUTES = 10;
 
 const hashPassword = async password => {
     const salt = (await randomBytes(16)).toString('hex');
@@ -22,8 +30,87 @@ const verifyPassword = async (password, storedHash) => {
 
 const sanitizeUser = user => ({
     _id: user._id,
-    email: user.email
+    email: user.email,
+    isVerified: user.isVerified
 });
+
+const createVerificationCode = () => crypto.randomInt(100000, 1000000).toString();
+
+const setVerificationCode = user => {
+    const code = createVerificationCode();
+    user.verificationCode = code;
+    user.verificationExpiresAt = new Date(Date.now() + OTP_EXPIRATION_MINUTES * 60 * 1000);
+    return code;
+};
+
+const ensureMailjetIsConfigured = () => {
+    if (!mailjetApiKey || !mailjetApiSecret) {
+        throw new Error('Mailjet is not configured. Please set MAILJET_API_KEY and MAILJET_API_SECRET.');
+    }
+    if (!mailjetFromEmail) {
+        throw new Error('MAILJET_FROM_EMAIL is required to send emails.');
+    }
+};
+
+const sendVerificationEmail = async (email, code) => {
+    ensureMailjetIsConfigured();
+
+    const payload = JSON.stringify({
+        Messages: [
+            {
+                From: {
+                    Email: mailjetFromEmail,
+                    Name: mailjetFromName
+                },
+                To: [
+                    {
+                        Email: email
+                    }
+                ],
+                Subject: 'Your OTP Code for VocabBuilder',
+                TextPart: `Your OTP code is ${code}. The code is valid for ${OTP_EXPIRATION_MINUTES} minutes.`,
+                HTMLPart: `<p>Your OTP code is <strong>${code}</strong>.</p><p>The code is valid for ${OTP_EXPIRATION_MINUTES} minutes.</p>`
+            }
+        ]
+    });
+
+    const authHeader = Buffer.from(`${mailjetApiKey}:${mailjetApiSecret}`).toString('base64');
+
+    await new Promise((resolve, reject) => {
+        const request = https.request(
+            'https://api.mailjet.com/v3.1/send',
+            {
+                method: 'POST',
+                headers: {
+                    Authorization: `Basic ${authHeader}`,
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(payload)
+                }
+            },
+            response => {
+                let data = '';
+                response.on('data', chunk => {
+                    data += chunk;
+                });
+                response.on('end', () => {
+                    if (response.statusCode >= 200 && response.statusCode < 300) {
+                        resolve();
+                        return;
+                    }
+                    reject(
+                        new Error(
+                            `Mailjet request failed with status ${response.statusCode}: ${data || response.statusMessage}`
+                        )
+                    );
+                });
+            }
+        );
+
+        request.on('error', reject);
+        request.write(payload);
+        request.end();
+    });
+};
 
 exports.list_all_users = (req, res) => {
     User.find({}, (err, users) => {
@@ -57,10 +144,20 @@ exports.signup = async (req, res) => {
             return res.status(409).json({ message: 'Email is already registered' });
         }
 
-        const user = new User({ email, password: await hashPassword(password) });
-        const createdUser = await user.save();
+            const user = new User({
+            email,
+            password: await hashPassword(password),
+            isVerified: false
+        });
 
-        return res.status(201).json(sanitizeUser(createdUser));
+        const verificationCode = setVerificationCode(user);
+        const createdUser = await user.save();
+        await sendVerificationEmail(email, verificationCode);
+
+        return res.status(201).json({
+            message: 'Signup successful. Please verify your email with the code sent to you.',
+            email: createdUser.email
+        });
     } catch (err) {
         return res.status(500).send(err);
     }
@@ -89,6 +186,70 @@ exports.login = async (req, res) => {
         return res.status(500).send(err);
     }
 };
+
+
+exports.verifyOtp = async (req, res) => {
+    const { email, code } = req.body;
+
+    if (!email || !code) {
+        return res.status(400).json({ message: 'Email and code are required' });
+    }
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user.isVerified) {
+            return res.json(sanitizeUser(user));
+        }
+
+        const isCodeValid =
+            user.verificationCode === code && user.verificationExpiresAt && user.verificationExpiresAt > new Date();
+
+        if (!isCodeValid) {
+            return res.status(400).json({ message: 'Invalid or expired code' });
+        }
+
+        user.isVerified = true;
+        user.verificationCode = undefined;
+        user.verificationExpiresAt = undefined;
+        await user.save();
+
+        return res.json(sanitizeUser(user));
+    } catch (err) {
+        return res.status(500).send(err);
+    }
+};
+
+exports.resendOtp = async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+    }
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user.isVerified) {
+            return res.status(400).json({ message: 'User is already verified' });
+        }
+
+        const verificationCode = setVerificationCode(user);
+        await user.save();
+        await sendVerificationEmail(email, verificationCode);
+
+        return res.json({ message: 'A new verification code has been sent to your email.' });
+    } catch (err) {
+        return res.status(500).send(err);
+    }
+};
+
 
 exports.read_a_user = (req, res) => {
     User.findById(req.params.userId, (err, user) => {

@@ -7,6 +7,7 @@ import Edit from './views/Edit.vue'
 import Test from './views/Test.vue'
 import Login from './views/Login.vue'
 import Signup from './views/Signup.vue'
+import VerifyEmail from './views/VerifyEmail.vue'
 import { auth } from './helpers/auth'
 
 Vue.use(Router)
@@ -18,7 +19,7 @@ const router = new Router({
     routes: [
         {
             path: '/',
-            redirect: '/words' 
+            redirect: '/words'
         },
         {
             path: '/words',
@@ -59,6 +60,11 @@ const router = new Router({
             path: '/signup',
             name: 'signup',
             component: Signup
+        },
+        {
+            path: '/verify',
+            name: 'verify',
+            component: VerifyEmail
         }
     ]
 })

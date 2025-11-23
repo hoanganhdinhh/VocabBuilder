@@ -55,6 +55,10 @@ export default {
                 const responseMessage = error.response?.data?.message || 'Unable to login right now.';
                 this.message = responseMessage;
                 this.messageType = 'negative message';
+                
+                if (error.response?.data?.requiresVerification) {
+                    this.$router.push({ name: 'verify', query: { email: error.response?.data?.email || this.form.email } });
+                }
             } finally {
                 this.isSubmitting = false;
             }

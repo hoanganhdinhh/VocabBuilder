@@ -14,4 +14,6 @@ module.exports = app => {
 
     app.route('/auth/signup').post(userController.signup);
     app.route('/auth/login').post(userController.login);
+    app.route('/auth/verify-otp').post(userController.verifyOtp);
+    app.route('/auth/resend-otp').post
 };  

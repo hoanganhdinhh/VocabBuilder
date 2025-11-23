@@ -44,13 +44,18 @@ export default {
             this.messageType = 'positive message';
 
             try {
-                const user = await api.signup({
+                const response = await api.signup({
                     email: this.form.email,
                     password: this.form.password
                 });
-                auth.setUser(user);
-                const redirect = this.$route.query.redirect || { name: 'words' };
-                this.$router.push(redirect);
+                this.message = response.message || 'Tài khoản đã được tạo, vui lòng kiểm tra email để nhận mã OTP.';
+                this.messageType = 'positive message';
+
+                this.$router.push({
+                    name: 'verify',
+                    query: { email: this.form.email }
+                });
+                
             } catch (error) {
                 const responseMessage = error.response?.data?.message || 'Unable to create account right now.';
                 this.message = responseMessage;
