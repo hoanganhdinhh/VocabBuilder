@@ -48,7 +48,7 @@ jobs:
 
       - name: Start server in background
         run: |
-          npm test &
+          npm start &
           echo $! > server.pid
           sleep 5
 
