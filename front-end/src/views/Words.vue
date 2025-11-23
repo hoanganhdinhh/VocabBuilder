@@ -1,6 +1,11 @@
 <template>
     <div>
         <h1>Words</h1>
+            <div class="ui action input" style="margin-bottom: 1rem;">
+                <input v-model="searchTerm" type="text" placeholder="Search words" @keyup.enter="search" />
+                <button class="ui button" type="button" @click="search">Search</button>
+                <button class="ui button" type="button" @click="resetSearch" :disabled="!searchTerm">Clear</button>
+            </div>
         <table id="words" class="ui celled compact table">
             <thead>
                 <tr>
@@ -32,11 +37,30 @@ export default {
     name: 'words',
     data() {
         return {
-            words: []
+            words: [],
+            allWords: [],
+            searchTerm: ''
         };
     },
     async mounted() {
-        this.words = await api.getWords();
+         this.allWords = await api.getWords();
+        this.words = this.allWords;
+    },
+    methods: {
+        async search() {
+            const query = this.searchTerm.trim();
+            if (!query) {
+                this.words = this.allWords;
+                return;
+            }
+
+            const results = await api.searchWords(query);
+            this.words = results;
+        },
+        resetSearch() {
+            this.searchTerm = '';
+            this.words = this.allWords;
+        }
     }
 };
 </script>

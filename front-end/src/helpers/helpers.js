@@ -12,12 +12,6 @@ const handleError = fn => async (...params) => {
     }
 };
 
-// const handleError = fn => (...params) => {
-//     fn(...params).catch(error => {
-//         console.log(error);
-//     });
-// };
-
 export const api = {
     getWord: handleError(async id => {
         const res = await axios.get(baseURL + id);
@@ -26,6 +20,11 @@ export const api = {
 
     getWords: handleError(async () => {
         const res = await axios.get(baseURL);
+        return res.data;
+    }),
+
+    searchWords: handleError(async query => {
+        const res = await axios.get(`${baseURL}search`, { params: { q: query } });
         return res.data;
     }),
 

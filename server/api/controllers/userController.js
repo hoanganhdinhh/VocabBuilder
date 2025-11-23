@@ -283,6 +283,7 @@ exports.update_a_user = async (req, res) => {
     } catch (err) {
         return res.send(err);
     }
+        
 };
 
 exports.delete_a_user = (req, res) => {

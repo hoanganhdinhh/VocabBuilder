@@ -14,6 +14,36 @@ const translateText = async (text, targetLanguage) => {
     return payload.responseData.translatedText;
 };
 
+const normalizeText = text => (text || '').toLowerCase();
+
+const toVector = text => {
+    const vector = new Array(26).fill(0);
+    const normalized = normalizeText(text);
+
+    for (const char of normalized) {
+        const code = char.charCodeAt(0) - 97;
+        if (code >= 0 && code < 26) {
+            vector[code] += 1;
+        }
+    }
+
+    return vector;
+};
+
+const cosineSimilarity = (a, b) => {
+    let dot = 0;
+    let magA = 0;
+    let magB = 0;
+
+    for (let i = 0; i < a.length; i += 1) {
+        dot += a[i] * b[i];
+        magA += a[i] * a[i];
+        magB += b[i] * b[i];
+    }
+
+    const denominator = Math.sqrt(magA) * Math.sqrt(magB);
+    return denominator === 0 ? 0 : dot / denominator;
+};
 
 exports.list_all_words = (req, res) => {
     Vocab.find({}, (err, words) => {
@@ -88,5 +118,34 @@ exports.suggest_translations = async (req, res) => {
     } catch (error) {
         console.error('Failed to translate word', error);
         res.status(500).json({ message: 'Unable to generate suggestions right now' });
+    }
+};
+
+exports.search_words = async (req, res) => {
+    const searchTerm = normalizeText(req.query.q);
+    if (!searchTerm) {
+        return res.status(400).json({ message: 'Query parameter "q" is required' });
+    }
+
+    try {
+        const searchVector = toVector(searchTerm);
+        const words = await Vocab.find({});
+
+        const ranked = words
+            .map(word => {
+                const combined = `${word.english} ${word.german} ${word.vietnamese}`;
+                return {
+                    word,
+                    score: cosineSimilarity(searchVector, toVector(combined))
+                };
+            })
+            .filter(entry => entry.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .map(entry => entry.word);
+
+        return res.json(ranked);
+    } catch (error) {
+        console.error('Failed to search words', error);
+        return res.status(500).json({ message: 'Unable to search words right now' });
     }
 };
