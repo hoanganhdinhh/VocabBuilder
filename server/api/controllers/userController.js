@@ -1,5 +1,24 @@
 const mongoose = require('mongoose');
 const User = mongoose.model('User');
+const crypto = require('crypto');
+const util = require('util');
+
+const pbkdf2 = util.promisify(crypto.pbkdf2);
+const randomBytes = util.promisify(crypto.randomBytes);
+
+const hashPassword = async password => {
+    const salt = (await randomBytes(16)).toString('hex');
+    const derivedKey = await pbkdf2(password, salt, 310000, 32, 'sha256');
+    return `${salt}:${derivedKey.toString('hex')}`;
+};
+
+const verifyPassword = async (password, storedHash) => {
+    if (!storedHash) return false;
+    const [salt, key] = storedHash.split(':');
+    if (!salt || !key) return false;
+    const derivedKey = await pbkdf2(password, salt, 310000, 32, 'sha256');
+    return crypto.timingSafeEqual(Buffer.from(key, 'hex'), derivedKey);
+};
 
 const sanitizeUser = user => ({
     _id: user._id,
@@ -13,12 +32,16 @@ exports.list_all_users = (req, res) => {
     });
 };
 
-exports.create_a_user = (req, res) => {
-    const newUser = new User(req.body);
-    newUser.save((err, user) => {
-        if (err) res.send(err);
+exports.create_a_user = async (req, res) => {
+    try {
+        const password = req.body.password;
+        const hashedPassword = password ? await hashPassword(password) : undefined;
+        const newUser = new User({ ...req.body, password: hashedPassword });
+        const user = await newUser.save();
         res.json(sanitizeUser(user));
-    });
+    } catch (err) {
+        res.send(err);
+    }
 };
 
 exports.signup = async (req, res) => {
@@ -34,7 +57,7 @@ exports.signup = async (req, res) => {
             return res.status(409).json({ message: 'Email is already registered' });
         }
 
-        const user = new User({ email, password });
+        const user = new User({ email, password: await hashPassword(password) });
         const createdUser = await user.save();
 
         return res.status(201).json(sanitizeUser(createdUser));
@@ -51,8 +74,13 @@ exports.login = async (req, res) => {
     }
 
     try {
-        const user = await User.findOne({ email, password });
+        const user = await User.findOne({ email });
         if (!user) {
+            return res.status(401).json({ message: 'Invalid email or password' });
+        }
+
+        const passwordMatches = await verifyPassword(password, user.password);
+        if (!passwordMatches) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 
@@ -75,16 +103,25 @@ exports.read_a_user = (req, res) => {
 };
 
 
-exports.update_a_user = (req, res) => {
-    User.findOneAndUpdate(
-        { _id: req.params.userId },
-        req.body,
-        { new: true },
-        (err, user) => {
-            if (err) return res.send(err);
-            res.json(sanitizeUser(user));
+exports.update_a_user = async (req, res) => {
+    try {
+        const updates = { ...req.body };
+        if (req.body.password) {
+            updates.password = await hashPassword(req.body.password);
         }
-    );
+
+        const user = await User.findOneAndUpdate({ _id: req.params.userId }, updates, {
+            new: true
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        return res.json(sanitizeUser(user));
+    } catch (err) {
+        return res.send(err);
+    }
 };
 
 exports.delete_a_user = (req, res) => {

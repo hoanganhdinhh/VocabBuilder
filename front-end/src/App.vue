@@ -66,11 +66,11 @@ export default {
 };
 </script>
 
-<script>
+<!-- <script>
 export default {
   name: 'app'
 };
-</script>
+</script> -->
 
 <style>
 #app > div.navbar {
