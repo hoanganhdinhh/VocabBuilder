@@ -3,6 +3,7 @@
         <h1 class="ui header">Test Yourself</h1>
 
         <div v-if="loading" class="ui active inline loader" aria-label="Loading test words"></div>
+        <!-- <div v-if="loading" class="ui active inline loader" aria-label="Loading quiz words"></div> -->
 
         <div v-else-if="error" class="ui negative message">
             <div class="header">Unable to load words</div>
@@ -11,49 +12,76 @@
 
         <div v-else-if="!hasWords" class="ui message">
             <div class="header">No words available</div>
-            <p>Add some vocabulary first so you can start practicing.</p>
+            <p>Add at least two vocabulary entries to start a quiz.</p>
         </div>
 
-        <div v-else class="ui segment">
-            <h2 class="ui header">
-                Translate this word to German
-                <div class="sub header">{{ currentWord.english }}</div>
-            </h2>
-            <form class="ui form" @submit.prevent="submitAnswer">
-                <div class="field">
-                    <label for="answer">Your answer</label>
-                    <input
-                        id="answer"
-                        ref="answerInput"
-                        type="text"
-                        v-model="userAnswer"
-                        autocomplete="off"
-                        placeholder="Type the German translation"
-                        :disabled="showFeedback"
-                    />
-                </div>
-
-                <button class="ui primary button" type="submit" :disabled="showFeedback || !userAnswer.trim()">
-                    Check answer
+        <div v-else>
+            <div class="ui message" v-if="!quizStarted">
+                <div class="header">Create a quiz to check your vocabulary</div>
+                <p>You will receive {{ questionCount }} questions translating from English to German with multiple choices.</p>
+                <button class="ui primary button" type="button" @click="startQuiz" :disabled="!canCreateQuiz">
+                    Start Quiz
                 </button>
-                <button
-                    class="ui button"
-                    type="button"
-                    @click="revealAnswer"
-                    :disabled="showFeedback"
-                >
-                    Reveal answer
-                </button>
-            </form>
-
-            <div v-if="showFeedback" class="ui message" :class="{ positive: isCorrect, negative: !isCorrect }">
-                <div class="header">{{ feedbackTitle }}</div>
-                <p>{{ feedbackMessage }}</p>
+                <p v-if="!canCreateQuiz" class="ui red text">At least two words are needed to create questions.</p>
             </div>
 
-            <div class="ui divider"></div>
+            <!-- <div class="ui message" v-if="!quizStarted">
+                <div class="header">Create a quiz to check your vocabulary</div>
+                <p>You will receive {{ questionCount }} questions translating from English to Vietnamese with multiple choices.</p>
+                <button class="ui primary button" type="button" @click="startQuiz" :disabled="!canCreateQuiz">
+                    Start Quiz
+                </button>
+                <p v-if="!canCreateQuiz" class="ui red text">At least two words are needed to create questions.</p>
+            </div> -->
 
-            <button class="ui secondary button" type="button" @click="nextWord">Next word</button>
+            <div v-else-if="showResults" class="ui segment">
+                <h2 class="ui header">Results</h2>
+                <p>You answered {{ score }} / {{ quizQuestions.length }} questions correctly.</p>
+                <button class="ui primary button" type="button" @click="startQuiz">Retry</button>
+            </div>
+
+            <div v-else class="ui segment">
+                <div class="ui top attached label">Question {{ currentQuestionNumber }} / {{ quizQuestions.length }}</div>
+                <h2 class="ui header">
+                    Translate to German:
+                    <div class="sub header">{{ currentQuestion.prompt }}</div>
+                </h2>
+
+                <form class="ui form" @submit.prevent="submitAnswer">
+                    <div class="grouped fields">
+                        <div
+                            v-for="option in currentQuestion.options"
+                            :key="option"
+                            class="field"
+                        >
+                            <div class="ui radio checkbox">
+                                <input
+                                    type="radio"
+                                    :id="option"
+                                    :value="option"
+                                    v-model="selectedAnswer"
+                                />
+                                <label :for="option">{{ option }}</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="ui primary button" type="submit" :disabled="!selectedAnswer">
+                        Check Answer
+                    </button>
+                </form>
+
+                <div v-if="answered" class="ui message" :class="{ positive: isCorrect, negative: !isCorrect }">
+                    <div class="header">{{ feedbackTitle }}</div>
+                    <p>{{ feedbackMessage }}</p>
+                </div>
+
+                <div class="ui divider"></div>
+
+                <button class="ui button" type="button" @click="nextQuestion" :disabled="!answered">
+                    Next Question
+                </button>
+            </div>
         </div>
     </div>
 </template>
@@ -66,30 +94,35 @@ export default {
     data() {
         return {
             words: [],
-            order: [],
+            quizQuestions: [],
             currentIndex: 0,
-            userAnswer: '',
-            showFeedback: false,
+            selectedAnswer: '',
+            answered: false,
             isCorrect: false,
-            loading: true,
-            error: '',
-            feedbackMessage: ''
+            feedbackMessage: '',
+            score: 0,
+            questionCount: 5,
+            quizStarted: false
         };
     },
     computed: {
         hasWords() {
             return this.words.length > 0;
         },
-        currentWord() {
-            if (!this.hasWords) {
-                return { english: '', german: '' };
-            }
-
-            const currentOrderIndex = this.order[this.currentIndex];
-            return this.words[currentOrderIndex];
+        canCreateQuiz() {
+            return this.words.length >= 2;
+        },
+        currentQuestion() {
+            return this.quizQuestions[this.currentIndex] || { options: [], prompt: '', correct: '' };
+        },
+        currentQuestionNumber() {
+            return this.currentIndex + 1;
         },
         feedbackTitle() {
-            return this.isCorrect ? 'Great job!' : 'Keep practicing';
+            return this.isCorrect ? 'Correct!' : 'Try Again';
+        },
+        showResults() {
+            return this.quizStarted && this.currentIndex >= this.quizQuestions.length;
         }
     },
     async mounted() {
@@ -103,18 +136,11 @@ export default {
             try {
                 const words = await api.getWords();
                 this.words = words;
-                this.resetOrder();
             } catch (err) {
                 this.error = 'Please try again later.';
             } finally {
                 this.loading = false;
-                this.focusInput();
             }
-        },
-        resetOrder() {
-            this.order = this.words.map((_, index) => index);
-                this.shuffle(this.order);
-            this.currentIndex = 0;
         },
         shuffle(array) {
             for (let i = array.length - 1; i > 0; i -= 1) {
@@ -122,43 +148,64 @@ export default {
                 [array[i], array[j]] = [array[j], array[i]];
             }
         },
+        startQuiz() {
+            if (!this.canCreateQuiz) {
+                return;
+            }
+
+            const shuffled = [...this.words];
+            this.shuffle(shuffled);
+
+            const questions = shuffled.slice(0, Math.min(this.questionCount, shuffled.length)).map(word => ({
+                prompt: word.english,
+                correct: word.german,
+                options: this.buildOptions(word)
+            }));
+
+            this.quizQuestions = questions;
+            this.currentIndex = 0;
+            this.selectedAnswer = '';
+            this.answered = false;
+            this.score = 0;
+            this.quizStarted = true;
+        },
+        buildOptions(correctWord) {
+            const distractors = this.words
+                .filter(word => word._id !== correctWord._id)
+                .map(word => word.german);
+
+            this.shuffle(distractors);
+
+            const options = [correctWord.german, ...distractors.slice(0, 3)];
+            this.shuffle(options);
+
+            return options;
+        },
         submitAnswer() {
-            if (!this.userAnswer.trim()) {
+            if (!this.selectedAnswer || this.answered) {
                 return;
             }
 
-            this.isCorrect = this.userAnswer.trim().toLowerCase() === this.currentWord.german.toLowerCase();
+            this.isCorrect = this.selectedAnswer === this.currentQuestion.correct;
             this.feedbackMessage = this.isCorrect
-                ? 'Correct translation!'
-                : `The correct translation is "${this.currentWord.german}".`;
-            this.showFeedback = true;
+                ? 'You selected the correct translation!'
+                : `The correct answer is "${this.currentQuestion.correct}".`;
+            this.answered = true;
+
+            if (this.isCorrect) {
+                this.score += 1;
+            }
         },
-        revealAnswer() {
-            this.isCorrect = false;
-            this.feedbackMessage = `The correct translation is "${this.currentWord.german}".`;
-            this.showFeedback = true;
-        },
-        nextWord() {
-            if (!this.hasWords) {
+        nextQuestion() {
+            if (!this.answered) {
                 return;
             }
 
-            this.currentIndex = (this.currentIndex + 1) % this.order.length;
-            if (this.currentIndex === 0) {
-                this.shuffle(this.order);
-            }
-
-            this.userAnswer = '';
-            this.showFeedback = false;
+            this.currentIndex += 1;
+            this.selectedAnswer = '';
+            this.answered = false;
             this.feedbackMessage = '';
-            this.focusInput();
-        },
-        focusInput() {
-            this.$nextTick(() => {
-                if (this.$refs.answerInput) {
-                    this.$refs.answerInput.focus();
-                }
-            });
+            this.isCorrect = false;
         }
     }
 };
