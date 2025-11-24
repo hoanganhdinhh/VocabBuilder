@@ -3,7 +3,6 @@
         <h1 class="ui header">Test Yourself</h1>
 
         <div v-if="loading" class="ui active inline loader" aria-label="Loading test words"></div>
-        <!-- <div v-if="loading" class="ui active inline loader" aria-label="Loading quiz words"></div> -->
 
         <div v-else-if="error" class="ui negative message">
             <div class="header">Unable to load words</div>
@@ -19,20 +18,20 @@
             <div class="ui message" v-if="!quizStarted">
                 <div class="header">Create a quiz to check your vocabulary</div>
                 <p>You will receive {{ questionCount }} questions translating from English to German with multiple choices.</p>
-                <button class="ui primary button" type="button" @click="startQuiz" :disabled="!canCreateQuiz">
+                <button class="ui primary button" type="button" @click="startGermanQuiz" :disabled="!canCreateQuiz">
                     Start Quiz
                 </button>
                 <p v-if="!canCreateQuiz" class="ui red text">At least two words are needed to create questions.</p>
             </div>
 
-            <!-- <div class="ui message" v-if="!quizStarted">
+            <div class="ui message" v-if="!quizStarted">
                 <div class="header">Create a quiz to check your vocabulary</div>
                 <p>You will receive {{ questionCount }} questions translating from English to Vietnamese with multiple choices.</p>
-                <button class="ui primary button" type="button" @click="startQuiz" :disabled="!canCreateQuiz">
+                <button class="ui primary button" type="button" @click="startVietnameseQuiz" :disabled="!canCreateQuiz">
                     Start Quiz
                 </button>
                 <p v-if="!canCreateQuiz" class="ui red text">At least two words are needed to create questions.</p>
-            </div> -->
+            </div>
 
             <div v-else-if="showResults" class="ui segment">
                 <h2 class="ui header">Results</h2>
@@ -43,7 +42,7 @@
             <div v-else class="ui segment">
                 <div class="ui top attached label">Question {{ currentQuestionNumber }} / {{ quizQuestions.length }}</div>
                 <h2 class="ui header">
-                    Translate to German:
+                    Translate to {{ targetLanguage }}:
                     <div class="sub header">{{ currentQuestion.prompt }}</div>
                 </h2>
 
@@ -102,7 +101,10 @@ export default {
             feedbackMessage: '',
             score: 0,
             questionCount: 5,
-            quizStarted: false
+            quizStarted: false,
+            quizLanguage: null, // 'german' or 'vietnamese'
+            loading: false,
+            error: ''
         };
     },
     computed: {
@@ -123,6 +125,11 @@ export default {
         },
         showResults() {
             return this.quizStarted && this.currentIndex >= this.quizQuestions.length;
+        },
+        targetLanguage() {
+            if (this.quizLanguage === 'german') return 'German';
+            if (this.quizLanguage === 'vietnamese') return 'Vietnamese';
+            return 'German/Vietnamese';
         }
     },
     async mounted() {
@@ -148,10 +155,12 @@ export default {
                 [array[i], array[j]] = [array[j], array[i]];
             }
         },
-        startQuiz() {
+        startGermanQuiz() {
             if (!this.canCreateQuiz) {
                 return;
             }
+
+            this.quizLanguage = 'german';
 
             const shuffled = [...this.words];
             this.shuffle(shuffled);
@@ -159,7 +168,7 @@ export default {
             const questions = shuffled.slice(0, Math.min(this.questionCount, shuffled.length)).map(word => ({
                 prompt: word.english,
                 correct: word.german,
-                options: this.buildOptions(word)
+                options: this.buildOptions(word, 'german')
             }));
 
             this.quizQuestions = questions;
@@ -169,14 +178,37 @@ export default {
             this.score = 0;
             this.quizStarted = true;
         },
-        buildOptions(correctWord) {
+        startVietnameseQuiz() {
+            if (!this.canCreateQuiz) {
+                return;
+            }
+
+            this.quizLanguage = 'vietnamese';
+
+            const shuffled = [...this.words];
+            this.shuffle(shuffled);
+
+            const questions = shuffled.slice(0, Math.min(this.questionCount, shuffled.length)).map(word => ({
+                prompt: word.english,
+                correct: word.vietnamese,
+                options: this.buildOptions(word, 'vietnamese')
+            }));
+
+            this.quizQuestions = questions;
+            this.currentIndex = 0;
+            this.selectedAnswer = '';
+            this.answered = false;
+            this.score = 0;
+            this.quizStarted = true;
+        },
+        buildOptions(correctWord, lang) {
             const distractors = this.words
                 .filter(word => word._id !== correctWord._id)
-                .map(word => word.german);
+                .map(word => word[lang]);
 
             this.shuffle(distractors);
 
-            const options = [correctWord.german, ...distractors.slice(0, 3)];
+            const options = [correctWord[lang], ...distractors.slice(0, 3)];
             this.shuffle(options);
 
             return options;
@@ -206,6 +238,11 @@ export default {
             this.answered = false;
             this.feedbackMessage = '';
             this.isCorrect = false;
+        },
+        // helper to restart; keeps same language if desired
+        startQuiz() {
+            if (this.quizLanguage === 'vietnamese') this.startVietnameseQuiz();
+            else this.startGermanQuiz();
         }
     }
 };
