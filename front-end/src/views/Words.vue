@@ -20,11 +20,12 @@
                 <td>{{ word.german }}</td>
                 <td>{{ word.vietnamese }}</td>
                 <td width="75" class="center aligned">
-                    <router-link :to="{name: 'show', params: { id: word._id }}">Show</router-link></td>
+                    <router-link class="ui button" :to="{name: 'show', params: { id: word._id }}">Show</router-link></td>
                 <td width="75" class="center aligned">
-                    <router-link :to="{name: 'edit', params: { id: word._id }}">Edit</router-link></td>
+                    <router-link class="ui blue button" :to="{name: 'edit', params: { id: word._id }}">Edit</router-link></td>
                 <td width="75" class="center aligned">
-                    <router-link :to="{name: 'show', params: { id: word._id }}">Destroy</router-link></td>
+                    <a class="ui red basic button" @click="destroyWord(word._id)">Destroy</a></td>
+                
             </tr>
         </table>
     </div>
@@ -60,6 +61,26 @@ export default {
         resetSearch() {
             this.searchTerm = '';
             this.words = this.allWords;
+        },
+        async destroyWord(wordId) {
+            if (!wordId) {
+                return;
+            }
+
+            const confirmed = window.confirm('Are you sure you want to delete this word?');
+
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                await api.deleteWord(wordId);
+                this.allWords = this.allWords.filter(word => word._id !== wordId);
+                this.words = this.words.filter(word => word._id !== wordId);
+                alert('Word deleted successfully!');
+            } catch (err) {
+                alert('Unable to delete the word. Please try again later.');
+            }
         }
     }
 };
